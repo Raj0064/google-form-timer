@@ -1,0 +1,106 @@
+<!-- timer.html (Student Quiz Page) -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Timed Google Form</title>
+  <style>
+    iframe {
+      width: 100%;
+      height: 80vh;
+      border: none;
+    }
+
+    #timer {
+      font-size: 1.5rem;
+      margin: 1rem 0;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="timer">Loading...</div>
+  <iframe id="formFrame"></iframe>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const rawFormURL = decodeURIComponent(params.get('form'));
+    const duration = parseInt(params.get('duration')) * 60 * 1000; // in ms
+    const iframe = document.getElementById('formFrame');
+
+    const startKey = 'startTime_' + rawFormURL;
+    let startTime = localStorage.getItem(startKey);
+    if (!startTime) {
+      startTime = Date.now();
+      localStorage.setItem(startKey, startTime);
+    } else {
+      startTime = parseInt(startTime);
+    }
+
+    let fieldId = null;
+
+    // Step 1: Extract the correct field ID for "Time Taken (seconds)"
+    fetch(rawFormURL)
+      .then(res => res.text())
+      .then(html => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const labels = Array.from(doc.querySelectorAll('div'));
+        for (let label of labels) {
+          if (label.textContent.includes('Time Taken')) {
+            const parent = label.closest('div[role="listitem"]');
+            if (parent) {
+              const entry = parent.innerHTML.match(/entry\.\d+/);
+              if (entry) {
+                fieldId = entry[0];
+                loadFormWithPrefill(0); // load form with 0 seconds initially
+              }
+            }
+          }
+        }
+      })
+      .catch(err => {
+        console.error('Failed to extract field ID:', err);
+        iframe.src = rawFormURL; // fallback without prefill
+      });
+
+    function loadFormWithPrefill(seconds) {
+      if (!fieldId) return;
+      const url = new URL(rawFormURL);
+      url.searchParams.set(fieldId, seconds);
+      iframe.src = url.toString();
+    }
+
+    // Timer
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const elapsed = now - startTime;
+      const remaining = duration - elapsed;
+      const mins = Math.floor(remaining / 60000);
+      const secs = Math.floor((remaining % 60000) / 1000);
+
+      document.getElementById('timer').innerText = `Time left: ${mins}m ${secs}s`;
+
+      if (remaining <= 0) {
+        clearInterval(interval);
+        document.getElementById('timer').innerText = 'Time is up! Submitting...';
+        const secondsTaken = Math.floor((Date.now() - startTime) / 1000);
+        if (fieldId) loadFormWithPrefill(secondsTaken);
+        // Note: true auto-submit blocked in iframe. Add message event listener if needed
+      }
+    }, 1000);
+
+    // Message listener for manual submit (optional hook)
+    window.addEventListener('message', function (event) {
+      if (event.data === 'submitted') {
+        clearInterval(interval);
+        localStorage.removeItem(startKey);
+        document.getElementById('timer').innerText = 'Form submitted!';
+      }
+    });
+  </script>
+</body>
+
+</html>

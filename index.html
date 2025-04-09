@@ -1,0 +1,44 @@
+<!-- index.html (Teacher Interface) -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Google Form Timer Generator</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 600px;
+      margin: 2rem auto;
+    }
+
+    input,
+    button {
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      width: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Google Form Timer Generator</h1>
+  <label>Google Form Link:</label>
+  <input type="text" id="formLink" placeholder="https://forms.gle/...">
+  <label>Duration (minutes):</label>
+  <input type="number" id="duration" placeholder="10">
+  <button onclick="generateLink()">Generate Timed Link</button>
+  <p id="output"></p>
+
+  <script>
+    function generateLink() {
+      const link = document.getElementById('formLink').value;
+      const duration = document.getElementById('duration').value;
+      const encoded = encodeURIComponent(link);
+      const result = `timer.html?form=${encoded}&duration=${duration}`;
+      document.getElementById('output').innerHTML = `<a href="${result}" target="_blank">${location.href.replace('index.html', '')}${result}</a>`;
+    }
+  </script>
+</body>
+
+</html>
